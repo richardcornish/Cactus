@@ -45,7 +45,7 @@ class Site(SiteCompatibilityLayer):
     _parallel = PARALLEL_CONSERVATIVE  #TODO: Test me
     _static = None
 
-    def __init__(self, path, config_paths=None, ui=None,
+    def __init__(self, path, config_paths=None, ui=None, debug=False,
         PluginManagerClass=None, ExternalManagerClass=None, DeploymentEngineClass=None):
 
         # Load the config engine
@@ -58,6 +58,7 @@ class Site(SiteCompatibilityLayer):
         self.compress_extensions = self.config.get('compress', ['html', 'css', 'js', 'txt', 'xml'])
         self.fingerprint_extensions = self.config.get('fingerprint', [])
         self.locale = self.config.get("locale", None)
+        self.debug = debug
 
         # Verify our location looks correct
         self.path = path
@@ -148,6 +149,7 @@ class Site(SiteCompatibilityLayer):
                 "USE_L10N": False,
                 "LANGUAGE_CODE":  self.locale,
                 "LOCALE_PATHS": [self.locale_path],
+                "DEBUG": self.debug,
             })
 
         django.conf.settings.configure(**settings)
@@ -182,6 +184,7 @@ class Site(SiteCompatibilityLayer):
                 'static': [p for p in self.static()]
             },
             '__CACTUS_SITE__': self,
+            'debug': self.debug, # imitate django.core.context_processors.debug
         }
 
         # Also make lowercase work

@@ -59,9 +59,9 @@ class CactusCli(object):
         site = self.Site(path, config)
         site.make_messages()
 
-    def serve(self, path, config, port, browser):
+    def serve(self, path, config, port, browser, no_debug):
         """Serve the project and watch changes"""
-        site = self.Site(path, config)
+        site = self.Site(path, config, debug=not no_debug)
         site.serve(port=port, browser=browser)
 
     def domain_setup(self, path, config):
@@ -97,6 +97,7 @@ def parse_arguments(cli, args):
     parser_serve.set_defaults(target=cli.serve)
     parser_serve.add_argument('-p', '--port', default=8000, type=int, help='The port on which to serve the site.')
     parser_serve.add_argument('-b', '--browser', action='store_true', help='Whether to open a browser for the site.')
+    parser_serve.add_argument('--no-debug', default=False, action='store_true', help='Disable debug mode.')
 
     parser_make_messages = subparsers.add_parser('messages:make', help='Create translation files for the current project')
     parser_make_messages.set_defaults(target=cli.make_messages)
