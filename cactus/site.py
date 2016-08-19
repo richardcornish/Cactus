@@ -21,7 +21,7 @@ from cactus.static.external.manager import ExternalManager
 from cactus.compat.paths import SiteCompatibilityLayer
 from cactus.compat.page import PageContextCompatibilityPlugin
 from cactus.utils.file import fileSize
-from cactus.utils.filesystem import fileList
+from cactus.utils.filesystem import chdir, fileList
 from cactus.utils.helpers import memoize, map_apply
 from cactus.utils.network import internetWorking
 from cactus.utils.parallel import multiMap, PARALLEL_DISABLED, PARALLEL_CONSERVATIVE, PARALLEL_AGGRESSIVE
@@ -238,6 +238,7 @@ class Site(SiteCompatibilityLayer):
 
         # Reset the static content
         self._static = None
+        self._static_resources_dict = None
 
         #TODO: Facility to reset the site, and reload config.
         #TODO: Currently, we can't build a site instance multiple times
@@ -304,6 +305,15 @@ class Site(SiteCompatibilityLayer):
 
         return self._static
 
+    def static_resources_dict(self):
+        """
+        Retrieve a dictionary mapping URL's to static files
+        """
+        if self._static_resources_dict is None:
+            self._static_resources_dict = dict((resource.link_url, resource) for resource in self.static())
+
+        return self._static_resources_dict
+
     def _get_resource(self, src_url, resources):
 
         if is_external(src_url):
@@ -313,10 +323,8 @@ class Site(SiteCompatibilityLayer):
             if split_char in src_url:
                 src_url = src_url.split(split_char)[0]
 
-        resources_dict = dict((resource.link_url, resource) for resource in resources)
-
-        if src_url in resources_dict:
-            return resources_dict[src_url].final_url
+        if src_url in resources:
+            return resources[src_url].final_url
 
         return None
 
@@ -325,10 +333,10 @@ class Site(SiteCompatibilityLayer):
         return self._get_resource(src_url, resources)
 
     def get_url_for_static(self, src_path):
-        return self._get_url(src_path, self.static())
+        return self._get_url(src_path, self.static_resources_dict())
 
     def get_url_for_page(self, src_path):
-        return self._get_url(src_path, self.pages())
+        return self._get_url(src_path, dict((resource.link_url, resource) for resource in self.pages()))
 
     def buildStatic(self):
         """
@@ -444,10 +452,9 @@ class Site(SiteCompatibilityLayer):
         ipc.signal("server.didstart")
         logger.info('Type control-c to exit')
 
-        os.chdir(self.build_path)
-
-        self.listener = Listener(self.path, self._rebuild, ignore=self._rebuild_should_ignore)
-        self.listener.run()
+        with chdir(self.build_path):
+            self.listener = Listener(self.path, self._rebuild, ignore=self._rebuild_should_ignore)
+            self.listener.run()
 
         self.server = WebServer(self.build_path, port=port)
 
